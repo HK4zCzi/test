@@ -1,0 +1,1113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EASM</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--bg4:#30363d;
+  --border:#30363d;--text:#e6edf3;--muted:#7d8590;--subtle:#484f58;
+  --blue:#58a6ff;--green:#3fb950;--red:#f85149;--amber:#d29922;
+  --purple:#bc8cff;--teal:#39d353;--orange:#f0883e;
+  --r:8px;--font:system-ui,-apple-system,sans-serif
+}
+body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px}
+
+header{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 20px;height:52px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:200}
+.logo{font-size:16px;font-weight:700;color:var(--blue)}
+.logo span{color:var(--muted);font-weight:400}
+nav{display:flex;gap:4px;margin-left:16px}
+nav button{background:none;border:none;color:var(--muted);padding:6px 12px;border-radius:var(--r);cursor:pointer;font-size:13px;transition:.15s}
+nav button:hover{background:var(--bg3);color:var(--text)}
+nav button.active{background:var(--bg3);color:var(--text)}
+.hstatus{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--subtle)}
+.dot.ok{background:var(--green)}.dot.err{background:var(--red)}
+
+.page{display:none;padding:20px;max-width:1400px;margin:0 auto}
+.page.active{display:block}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+@media(max-width:900px){.grid2,.grid3,.grid4{grid-template-columns:1fr}}
+
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+.card-h{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:44px}
+.card-h h3{font-size:13px;font-weight:600}
+.card-b{padding:16px}
+
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px 20px}
+.stat-card .num{font-size:30px;font-weight:700;color:var(--blue);line-height:1}
+.stat-card .lbl{font-size:12px;color:var(--muted);margin-top:4px}
+.stat-card.green .num{color:var(--green)}.stat-card.amber .num{color:var(--amber)}
+.stat-card.red .num{color:var(--red)}.stat-card.purple .num{color:var(--purple)}
+
+input,select,textarea{background:var(--bg3);border:1px solid var(--border);color:var(--text);border-radius:var(--r);padding:7px 10px;font-size:13px;outline:none;font-family:inherit}
+input:focus,select:focus{border-color:var(--blue)}
+input{flex:1;min-width:160px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+
+.btn{padding:7px 14px;border-radius:var(--r);border:none;font-size:13px;font-weight:500;cursor:pointer;transition:.15s;white-space:nowrap;font-family:inherit}
+.btn:hover{opacity:.85}.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-primary{background:var(--blue);color:#0d1117}
+.btn-green{background:var(--green);color:#0d1117}
+.btn-red{background:var(--red);color:#fff}
+.btn-ghost{background:var(--bg3);color:var(--text);border:1px solid var(--border)}
+.btn-purple{background:var(--purple);color:#0d1117}
+.btn-amber{background:var(--amber);color:#0d1117}
+.btn-sm{padding:4px 10px;font-size:12px}
+
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:8px 12px;font-size:11px;color:var(--muted);border-bottom:1px solid var(--border);font-weight:500;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
+td{padding:8px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:var(--bg3)}
+.mono{font-family:ui-monospace,monospace;font-size:11px;color:var(--muted)}
+
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600}
+.b-domain{background:#0d2337;color:var(--blue)}.b-ip{background:#0d2d1a;color:var(--green)}
+.b-service{background:#1f1535;color:var(--purple)}.b-active{background:#0d2d1a;color:var(--green)}
+.b-inactive{background:#2d1515;color:var(--red)}.b-pending{background:#2d2210;color:var(--amber)}
+.b-running{background:#0d1f3a;color:var(--blue)}.b-completed{background:#0d2d1a;color:var(--green)}
+.b-failed{background:#2d1515;color:var(--red)}.b-partial{background:#2d2210;color:var(--orange)}
+.b-passive{background:#0d2337;color:var(--blue)}.b-active-scan{background:#2d1515;color:var(--red)}
+.b-group{background:#1f1535;color:var(--purple)}
+
+.scan-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(145px,1fr));gap:6px;margin-top:6px}
+.scan-item{border:1px solid var(--border);border-radius:var(--r);padding:9px 11px;cursor:pointer;transition:.15s;background:var(--bg3)}
+.scan-item:hover{border-color:var(--blue)}.scan-item.selected{border-color:var(--blue);background:#0d2337}
+.scan-item .s-name{font-weight:600;font-size:12px}.scan-item .s-desc{font-size:10px;color:var(--muted);margin-top:2px}
+.scan-item .s-badge{margin-top:5px}
+
+/* ── Result panel ── */
+.result-panel{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);margin-bottom:12px}
+.result-panel .rp-h{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.result-panel .rp-b{padding:14px}
+.result-panel pre{font-size:11px;font-family:ui-monospace,monospace;color:var(--teal);white-space:pre-wrap;word-break:break-all;max-height:400px;overflow-y:auto}
+
+.kv{display:grid;grid-template-columns:160px 1fr;gap:3px 12px;font-size:12px}
+.kv .k{color:var(--muted);text-align:right}.kv .v{color:var(--text);word-break:break-all}
+.tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+.tag{background:var(--bg4);border:1px solid var(--border);border-radius:4px;padding:2px 7px;font-size:11px;font-family:ui-monospace,monospace}
+.sec{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:10px 0 5px}
+.grade{width:36px;height:36px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:16px}
+.gA{background:#0d2d1a;color:var(--green)}.gB{background:#0d1f3a;color:var(--blue)}
+.gC{background:#2d2210;color:var(--amber)}.gD,.gF{background:#2d1515;color:var(--red)}
+.port-row{display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid var(--border);font-size:12px}
+.port-row:last-child{border:none}
+.port-num{font-family:monospace;font-weight:700;color:var(--green);min-width:48px}
+.alert{padding:8px 12px;border-radius:var(--r);font-size:12px;margin-bottom:8px}
+.alert-red{background:#2d1515;border:1px solid #f85149;color:var(--red)}
+.alert-green{background:#0d2d1a;border:1px solid var(--green);color:var(--green)}
+.alert-blue{background:#0d1f3a;border:1px solid var(--blue);color:var(--blue)}
+.alert-amber{background:#2d2210;border:1px solid var(--amber);color:var(--amber)}
+
+/* ── Modal overlay ── */
+#modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:500;overflow-y:auto;padding:20px}
+#modal-overlay.show{display:flex;align-items:flex-start;justify-content:center}
+#modal-box{background:var(--bg2);border:1px solid var(--border);border-radius:12px;width:100%;max-width:900px;margin:auto}
+#modal-header{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+#modal-body{padding:20px;max-height:80vh;overflow-y:auto}
+
+/* ── Export button ── */
+.export-bar{display:flex;gap:8px;align-items:center;margin-bottom:12px}
+
+.empty{text-align:center;color:var(--muted);padding:36px;font-size:13px}
+.loading{text-align:center;color:var(--muted);padding:16px;font-size:12px}
+.pulse{animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.sep{height:1px;background:var(--border);margin:14px 0}
+#toast{position:fixed;bottom:20px;right:20px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:10px 16px;font-size:13px;transform:translateY(60px);opacity:0;transition:.25s;z-index:999;max-width:320px}
+#toast.show{transform:translateY(0);opacity:1}
+#toast.ok{border-color:var(--green)}#toast.err{border-color:var(--red)}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">EASM <span>/ Attack Surface Manager</span></div>
+  <nav>
+    <button class="active" onclick="showPage('dashboard',this)">Dashboard</button>
+    <button onclick="showPage('assets',this)">Assets</button>
+    <button onclick="showPage('scanner',this)">Scanner</button>
+    <button onclick="showPage('results',this)">Results</button>
+  </nav>
+  <div class="hstatus"><div class="dot" id="hdot"></div><span id="htext">connecting...</span></div>
+</header>
+
+<!-- DASHBOARD -->
+<div class="page active" id="page-dashboard">
+  <div class="grid4" style="margin-bottom:16px">
+    <div class="stat-card"><div class="num" id="s-total">—</div><div class="lbl">Total assets</div></div>
+    <div class="stat-card green"><div class="num" id="s-active">—</div><div class="lbl">Active</div></div>
+    <div class="stat-card purple"><div class="num" id="s-domain">—</div><div class="lbl">Domains</div></div>
+    <div class="stat-card amber"><div class="num" id="s-ip">—</div><div class="lbl">IP addresses</div></div>
+  </div>
+  <div class="grid2">
+    <div class="card"><div class="card-h"><h3>Asset breakdown</h3></div><div class="card-b" id="dash-breakdown"><div class="loading">Loading...</div></div></div>
+    <div class="card"><div class="card-h"><h3>Recent scans</h3><button class="btn btn-ghost btn-sm" onclick="showPage('results',document.querySelector('nav button:nth-child(4)'))">View all</button></div><div style="padding:0" id="dash-recent"><div class="loading">Loading...</div></div></div>
+  </div>
+</div>
+
+<!-- ASSETS -->
+<div class="page" id="page-assets">
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-h"><h3>Add asset</h3></div>
+    <div class="card-b">
+      <div class="row">
+        <input id="a-name" placeholder="domain.com or 192.168.1.1 or service-name" style="flex:2">
+        <select id="a-type"><option value="domain">domain</option><option value="ip">ip</option><option value="service">service</option></select>
+        <select id="a-status"><option value="active">active</option><option value="inactive">inactive</option></select>
+        <button class="btn btn-primary" onclick="createAsset()">Add</button>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-h">
+      <h3>Assets</h3>
+      <div class="row">
+        <input id="a-search" placeholder="Search..." style="min-width:140px" onkeyup="if(event.key==='Enter')searchAssets()">
+        <select id="a-ftype" onchange="loadAssets(1)"><option value="">All types</option><option value="domain">domain</option><option value="ip">ip</option><option value="service">service</option></select>
+        <select id="a-fstatus" onchange="loadAssets(1)"><option value="">All status</option><option value="active">active</option><option value="inactive">inactive</option></select>
+        <button class="btn btn-ghost btn-sm" onclick="searchAssets()">Search</button>
+        <button class="btn btn-ghost btn-sm" onclick="document.getElementById('a-search').value='';loadAssets(1)">Clear</button>
+      </div>
+    </div>
+    <div id="asset-wrap"><div class="loading">Loading...</div></div>
+    <div style="display:flex;align-items:center;gap:8px;padding:10px 16px;border-top:1px solid var(--border)">
+      <button class="btn btn-ghost btn-sm" id="btn-prev" onclick="changePage(-1)">← Prev</button>
+      <span id="page-info" style="font-size:12px;color:var(--muted)">Page 1</span>
+      <button class="btn btn-ghost btn-sm" id="btn-next" onclick="changePage(1)">Next →</button>
+      <span id="page-total" style="margin-left:auto;font-size:12px;color:var(--muted)"></span>
+    </div>
+  </div>
+</div>
+
+<!-- SCANNER -->
+<div class="page" id="page-scanner">
+  <div class="grid2">
+    <div>
+      <div class="card" style="margin-bottom:14px">
+        <div class="card-h"><h3>Target asset</h3></div>
+        <div class="card-b">
+          <div class="row" style="margin-bottom:8px">
+            <input id="sc-id" placeholder="Asset ID" oninput="debouncePreview(this.value)">
+            <button class="btn btn-ghost btn-sm" onclick="pickAsset()">Browse</button>
+          </div>
+          <div id="sc-asset-info" style="font-size:12px;color:var(--muted)">Paste an asset ID above</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-h"><h3>Scan type</h3></div>
+        <div class="card-b">
+          <div class="sec">Passive — domain (17 types)</div>
+          <div class="scan-grid" id="scan-passive-domain"></div>
+          <div class="sep"></div>
+          <div class="sec">Passive — IP</div>
+          <div class="scan-grid" id="scan-passive-ip"></div>
+          <div class="sep"></div>
+          <div class="sec">Active scans</div>
+          <div class="alert alert-amber" style="font-size:11px">Port scan runs on ALL IPs including public. Only scan systems you own.</div>
+          <div class="scan-grid" id="scan-active"></div>
+          <div class="sep"></div>
+          <div class="sec">Scan groups</div>
+          <div class="scan-grid" id="scan-groups"></div>
+          <div class="sep"></div>
+          <button class="btn btn-primary" style="width:100%;margin-top:4px" onclick="startScan()" id="btn-start">Start scan</button>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="card" style="margin-bottom:14px">
+        <div class="card-h">
+          <h3>Job queue</h3>
+          <button class="btn btn-ghost btn-sm" onclick="refreshJobs()">Refresh</button>
+        </div>
+        <div id="job-queue"><div class="empty">No jobs yet</div></div>
+      </div>
+      <!-- Inline result panel — shows immediately when clicking View -->
+      <div class="card" id="inline-result-card" style="display:none">
+        <div class="card-h" id="inline-result-header">
+          <h3>Result</h3>
+          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('inline-result-card').style.display='none'">✕ Close</button>
+        </div>
+        <div class="card-b" id="inline-result-body"></div>
+      </div>
+    </div>
+  </div>
+  <div id="asset-picker-panel" style="display:none;margin-top:14px">
+    <div class="card"><div class="card-h"><h3>Pick asset</h3><button class="btn btn-ghost btn-sm" onclick="document.getElementById('asset-picker-panel').style.display='none'">Close</button></div><div id="picker-wrap"><div class="loading">Loading...</div></div></div>
+  </div>
+</div>
+
+<!-- RESULTS -->
+<div class="page" id="page-results">
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-h"><h3>Asset scan history</h3></div>
+    <div class="card-b">
+      <div class="row">
+        <input id="r-assetid" placeholder="Asset ID">
+        <button class="btn btn-ghost" onclick="loadHistory()">Load</button>
+      </div>
+    </div>
+  </div>
+  <div id="history-wrap"></div>
+</div>
+
+<!-- MODAL -->
+<div id="modal-overlay" onclick="if(event.target===this)closeModal()">
+  <div id="modal-box">
+    <div id="modal-header">
+      <span id="modal-title" style="font-weight:600;flex:1"></span>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal()">✕ Close</button>
+    </div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const API = 'http://localhost:8080';
+let currentPage = 1, selectedScan = null;
+let activePolls = {}, previewTimeout = null;
+
+const SCANS = {
+  passiveDomain: [
+    {type:'dns',         name:'DNS',           desc:'A,AAAA,MX,NS,TXT,SPF'},
+    {type:'whois',       name:'WHOIS',         desc:'Registrar, dates, org'},
+    {type:'subdomain',   name:'Subdomain',     desc:'Brute-force DNS enum'},
+    {type:'cert_trans',  name:'Cert CT',       desc:'crt.sh CT logs'},
+    {type:'ssl',         name:'SSL/TLS',       desc:'Cert + grade A-F'},
+    {type:'tech',        name:'Tech stack',    desc:'Server, framework, CDN'},
+    {type:'headers',     name:'Sec headers',   desc:'HSTS,CSP grade A-D'},
+    {type:'waf',         name:'WAF',           desc:'wafw00f + subdomains'},
+    {type:'takeover',    name:'Takeover',      desc:'Dangling CNAME check'},
+    {type:'gau',         name:'GetAllURLs',    desc:'Wayback + OTX URLs'},
+    {type:'virustotal',  name:'VirusTotal',    desc:'VT + OTX threat intel'},
+    {type:'urlscan',     name:'URLScan.io',    desc:'Passive screenshots'},
+    {type:'js_scan',     name:'JS secrets',    desc:'Endpoints + API keys'},
+    {type:'cors',        name:'CORS',          desc:'Misconfiguration check'},
+    {type:'s3',          name:'S3 buckets',    desc:'Enumerate bucket names'},
+    {type:'dir_brute',   name:'Dir brute',     desc:'Common paths/files'},
+    {type:'http_probe',  name:'HTTP probe',    desc:'Alive,redirect,title'},
+  ],
+  passiveIP: [
+    {type:'ip',          name:'IP geo',        desc:'Country,city,ISP'},
+    {type:'asn',         name:'ASN',           desc:'BGPView ASN data'},
+    {type:'reverse_dns', name:'Reverse DNS',   desc:'PTR record'},
+    {type:'shodan',      name:'Shodan',        desc:'Internet scan data'},
+  ],
+  active: [
+    {type:'port',        name:'Port scan',     desc:'nmap -sV (all IPs)'},
+    {type:'xss',         name:'XSS scan',      desc:'Reflected XSS payloads'},
+    {type:'ssrf',        name:'SSRF scan',     desc:'Server-side request forgery'},
+    {type:'crlf',        name:'CRLF scan',     desc:'Header injection check'},
+  ],
+  groups: [
+    {type:'domain_full', name:'Domain full',   desc:'All 20 domain scans'},
+    {type:'ip_full',     name:'IP full',       desc:'geo+ASN+Shodan+port'},
+    {type:'passive_all', name:'Passive all',   desc:'All safe passive'},
+    {type:'all',         name:'All scans',     desc:'Everything compatible'},
+  ],
+};
+
+// ── Utilities ──────────────────────────────────────────────────────
+async function api(path, opts={}) {
+  const r = await fetch(API+path, {headers:{'Content-Type':'application/json'},...opts});
+  if(!r.ok){ const e=await r.json().catch(()=>({detail:r.statusText})); throw new Error(e.detail||JSON.stringify(e)); }
+  return r.json();
+}
+function toast(msg,type='ok'){
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.className=`show ${type}`;
+  clearTimeout(el._t); el._t=setTimeout(()=>el.className='',3000);
+}
+function h(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function badge(val,cls){return `<span class="badge b-${cls||val}">${h(val)}</span>`;}
+function showPage(id,btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  if(btn)btn.classList.add('active');
+  if(id==='dashboard')loadDashboard();
+  if(id==='assets')loadAssets(1);
+}
+
+// ── Modal ──────────────────────────────────────────────────────────
+function openModal(title, contentHtml) {
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-body').innerHTML = contentHtml;
+  document.getElementById('modal-overlay').classList.add('show');
+}
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('show');
+}
+
+// ── Inline result (scanner page) ───────────────────────────────────
+function showInlineResult(title, contentHtml) {
+  const card = document.getElementById('inline-result-card');
+  document.getElementById('inline-result-header').querySelector('h3').textContent = title;
+  document.getElementById('inline-result-body').innerHTML = contentHtml;
+  card.style.display = 'block';
+  // Scroll card into view smoothly
+  setTimeout(() => card.scrollIntoView({behavior:'smooth', block:'nearest'}), 50);
+}
+
+// ── Health ─────────────────────────────────────────────────────────
+async function checkHealth(){
+  try{
+    const hd=await api('/health');
+    document.getElementById('hdot').className='dot '+(hd.status==='ok'?'ok':'err');
+    document.getElementById('htext').textContent=hd.status==='ok'?'DB connected':'DB degraded';
+  }catch{
+    document.getElementById('hdot').className='dot err';
+    document.getElementById('htext').textContent='API offline';
+  }
+}
+
+// ── Dashboard ──────────────────────────────────────────────────────
+async function loadDashboard(){
+  try{
+    const s=await api('/assets/stats');
+    document.getElementById('s-total').textContent=s.total;
+    document.getElementById('s-active').textContent=s.by_status.active??0;
+    document.getElementById('s-domain').textContent=s.by_type.domain??0;
+    document.getElementById('s-ip').textContent=s.by_type.ip??0;
+    const types=Object.entries(s.by_type||{});
+    const statuses=Object.entries(s.by_status||{});
+    document.getElementById('dash-breakdown').innerHTML=`
+      <div class="sec">By type</div>
+      ${types.map(([k,v])=>`
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px">
+          ${badge(k)} <strong>${v}</strong>
+          <div style="flex:1;height:3px;background:var(--border);border-radius:2px">
+            <div style="height:100%;background:var(--blue);border-radius:2px;width:${s.total?Math.round(v/s.total*100):0}%"></div>
+          </div>
+          <span style="color:var(--muted);font-size:11px">${s.total?Math.round(v/s.total*100):0}%</span>
+        </div>`).join('')}
+      <div class="sep"></div>
+      <div class="sec">By status</div>
+      ${statuses.map(([k,v])=>`<div style="display:flex;gap:8px;margin-bottom:6px">${badge(k)}<strong>${v}</strong></div>`).join('')}`;
+  }catch(e){document.getElementById('dash-breakdown').innerHTML=`<div class="empty">Error: ${h(e.message)}</div>`;}
+
+  document.getElementById('dash-recent').innerHTML='<div class="loading">Loading...</div>';
+  try{
+    const assets=await api('/assets?page=1&limit=10');
+    let jobs=[];
+    for(const a of (assets.data||[]).slice(0,5)){
+      try{const jj=await api(`/assets/${a.id}/scans`); jobs=jobs.concat(jj.map(j=>({...j,asset_name:a.name})));}catch{}
+    }
+    jobs.sort((a,b)=>(b.created_at||'').localeCompare(a.created_at||''));
+    if(!jobs.length){document.getElementById('dash-recent').innerHTML='<div class="empty">No scans yet</div>';return;}
+    document.getElementById('dash-recent').innerHTML=`
+      <table><thead><tr><th>Asset</th><th>Type</th><th>Status</th><th>Results</th><th></th></tr></thead><tbody>
+      ${jobs.slice(0,8).map(j=>`<tr>
+        <td class="mono">${h(j.asset_name||'')}</td>
+        <td>${badge(j.scan_type)}</td>
+        <td>${badge(j.status,j.status)}</td>
+        <td style="color:var(--muted)">${j.results}</td>
+        <td><button class="btn btn-ghost btn-sm" onclick="viewJob('${j.id}','${j.scan_type}')">View</button></td>
+      </tr>`).join('')}</tbody></table>`;
+  }catch{}
+}
+
+// ── Assets ─────────────────────────────────────────────────────────
+async function loadAssets(page=currentPage){
+  currentPage=page;
+  const type=document.getElementById('a-ftype').value;
+  const status=document.getElementById('a-fstatus').value;
+  let url=`/assets?page=${page}&limit=15`;
+  if(type)url+=`&type=${type}`;
+  if(status)url+=`&status=${status}`;
+  const wrap=document.getElementById('asset-wrap');
+  wrap.innerHTML='<div class="loading">Loading...</div>';
+  try{
+    const res=await api(url);
+    const{data,pagination:p}=res;
+    if(!data.length){wrap.innerHTML='<div class="empty">No assets found</div>';return;}
+    wrap.innerHTML=`<table><thead><tr><th>Name</th><th>Type</th><th>Status</th><th>ID</th><th>Actions</th></tr></thead><tbody>
+      ${data.map(a=>`<tr>
+        <td><strong>${h(a.name)}</strong></td>
+        <td>${badge(a.type)}</td>
+        <td>${badge(a.status)}</td>
+        <td class="mono">${a.id}</td>
+        <td><div class="row" style="gap:4px">
+          <button class="btn btn-ghost btn-sm" onclick="goScan('${a.id}','${a.type}')">Scan</button>
+          <button class="btn btn-ghost btn-sm" onclick="goResults('${a.id}')">History</button>
+          <button class="btn btn-sm btn-red btn-ghost" onclick="deleteAsset('${a.id}')">Del</button>
+        </div></td>
+      </tr>`).join('')}</tbody></table>`;
+    document.getElementById('page-info').textContent=`Page ${p.page}/${p.total_pages}`;
+    document.getElementById('page-total').textContent=`${p.total} total`;
+    document.getElementById('btn-prev').disabled=p.page<=1;
+    document.getElementById('btn-next').disabled=p.page>=p.total_pages;
+  }catch(e){wrap.innerHTML=`<div class="empty">Error: ${h(e.message)}</div>`;}
+}
+function changePage(d){loadAssets(currentPage+d);}
+
+async function searchAssets(){
+  const q=document.getElementById('a-search').value.trim();
+  if(!q){loadAssets(1);return;}
+  const wrap=document.getElementById('asset-wrap');
+  wrap.innerHTML='<div class="loading">Searching...</div>';
+  try{
+    const res=await api(`/assets/search?q=${encodeURIComponent(q)}`);
+    if(!res.results.length){wrap.innerHTML='<div class="empty">No results</div>';return;}
+    wrap.innerHTML=`<table><thead><tr><th>Name</th><th>Type</th><th>Status</th><th>ID</th><th>Actions</th></tr></thead><tbody>
+      ${res.results.map(a=>`<tr>
+        <td><strong>${h(a.name)}</strong></td><td>${badge(a.type)}</td><td>${badge(a.status)}</td>
+        <td class="mono">${a.id}</td>
+        <td><button class="btn btn-ghost btn-sm" onclick="goScan('${a.id}','${a.type}')">Scan</button></td>
+      </tr>`).join('')}</tbody></table>
+      <div style="padding:8px 16px;font-size:12px;color:var(--muted)">${res.count} results</div>`;
+  }catch(e){wrap.innerHTML=`<div class="empty">${h(e.message)}</div>`;}
+}
+
+async function createAsset(){
+  const name=document.getElementById('a-name').value.trim();
+  const type=document.getElementById('a-type').value;
+  const status=document.getElementById('a-status').value;
+  if(!name){toast('Enter a name','err');return;}
+  try{
+    await api('/assets/single',{method:'POST',body:JSON.stringify({name,type,status})});
+    document.getElementById('a-name').value='';
+    toast(`"${name}" added`); loadAssets(1);
+  }catch(e){toast(e.message,'err');}
+}
+async function deleteAsset(id){
+  if(!confirm('Delete this asset?'))return;
+  try{await api(`/assets/batch?ids=${id}`,{method:'DELETE'});toast('Deleted');loadAssets(currentPage);}
+  catch(e){toast(e.message,'err');}
+}
+function goScan(assetId,assetType){
+  showPage('scanner',document.querySelector('nav button:nth-child(3)'));
+  document.getElementById('sc-id').value=assetId;
+  previewAsset(assetId);
+  selectScan(assetType==='ip'?'ip_full':'domain_full');
+}
+function goResults(assetId){
+  showPage('results',document.querySelector('nav button:nth-child(4)'));
+  document.getElementById('r-assetid').value=assetId;
+  loadHistory();
+}
+
+// ── Scanner ─────────────────────────────────────────────────────────
+function buildScanGrid(items,cid,cat){
+  document.getElementById(cid).innerHTML=items.map(s=>`
+    <div class="scan-item" id="si-${s.type}" onclick="selectScan('${s.type}')">
+      <div class="s-name">${s.name}</div>
+      <div class="s-desc">${s.desc}</div>
+      <div class="s-badge"><span class="badge b-${cat==='active'?'active-scan':cat==='groups'?'group':'passive'}">${cat}</span></div>
+    </div>`).join('');
+}
+function selectScan(type){
+  selectedScan=type;
+  document.querySelectorAll('.scan-item').forEach(el=>el.classList.remove('selected'));
+  const el=document.getElementById('si-'+type);
+  if(el)el.classList.add('selected');
+}
+function debouncePreview(val){
+  clearTimeout(previewTimeout);
+  previewTimeout=setTimeout(()=>previewAsset(val.trim()),400);
+}
+async function previewAsset(id){
+  if(!id)return;
+  try{
+    const a=await api(`/assets/${id}`);
+    document.getElementById('sc-asset-info').innerHTML=
+      `${badge(a.type)} <strong>${h(a.name)}</strong> — ${badge(a.status)}`;
+  }catch{document.getElementById('sc-asset-info').textContent='Asset not found';}
+}
+async function pickAsset(){
+  const panel=document.getElementById('asset-picker-panel');
+  panel.style.display='block';
+  document.getElementById('picker-wrap').innerHTML='<div class="loading">Loading...</div>';
+  try{
+    const res=await api('/assets?page=1&limit=50');
+    document.getElementById('picker-wrap').innerHTML=`<table>
+      <thead><tr><th>Name</th><th>Type</th><th>ID</th><th></th></tr></thead><tbody>
+      ${res.data.map(a=>`<tr>
+        <td><strong>${h(a.name)}</strong></td><td>${badge(a.type)}</td><td class="mono">${a.id}</td>
+        <td><button class="btn btn-ghost btn-sm" onclick="selectFromPicker('${a.id}','${a.name}','${a.type}')">Pick</button></td>
+      </tr>`).join('')}</tbody></table>`;
+  }catch(e){document.getElementById('picker-wrap').innerHTML=`<div class="empty">${h(e.message)}</div>`;}
+}
+function selectFromPicker(id,name,type){
+  document.getElementById('sc-id').value=id;
+  document.getElementById('sc-asset-info').innerHTML=`${badge(type)} <strong>${h(name)}</strong>`;
+  document.getElementById('asset-picker-panel').style.display='none';
+  selectScan(type==='ip'?'ip_full':'domain_full');
+}
+async function startScan(){
+  const assetId=document.getElementById('sc-id').value.trim();
+  if(!assetId){toast('Select an asset first','err');return;}
+  if(!selectedScan){toast('Select a scan type','err');return;}
+  const btn=document.getElementById('btn-start');
+  btn.disabled=true; btn.textContent='Starting...';
+  try{
+    const res=await api(`/assets/${assetId}/scan`,{method:'POST',body:JSON.stringify({scan_type:selectedScan})});
+    toast(`Scan started: ${selectedScan}`);
+    refreshJobs();
+    if(res.id) pollJob(res.id);
+    else if(res.jobs) res.jobs.forEach(j=>pollJob(j.id));
+  }catch(e){toast(e.message,'err');}
+  finally{btn.disabled=false;btn.textContent='Start scan';}
+}
+async function refreshJobs(){
+  const assetId=document.getElementById('sc-id').value.trim();
+  if(!assetId)return;
+  try{
+    const jobs=await api(`/assets/${assetId}/scans`);
+    const el=document.getElementById('job-queue');
+    if(!jobs.length){el.innerHTML='<div class="empty">No jobs yet</div>';return;}
+    el.innerHTML=`<table><thead><tr><th>Type</th><th>Status</th><th>Results</th><th>Time</th><th></th></tr></thead><tbody>
+      ${jobs.slice(0,20).map(j=>`<tr>
+        <td>${badge(j.scan_type)}</td>
+        <td>${badge(j.status,j.status)} ${j.status==='running'?'<span class="pulse" style="color:var(--blue)">●</span>':''}</td>
+        <td style="color:${j.results?'var(--green)':'var(--muted)'}">${j.results}</td>
+        <td style="font-size:11px;color:var(--muted)">${(j.started_at||'').slice(11,16)}</td>
+        <td><button class="btn btn-ghost btn-sm" onclick="viewJob('${j.id}','${j.scan_type}')">View</button></td>
+      </tr>`).join('')}</tbody></table>`;
+  }catch{}
+}
+function pollJob(jobId){
+  if(activePolls[jobId])return;
+  let tries=0;
+  activePolls[jobId]=setInterval(async()=>{
+    tries++;
+    try{
+      const job=await api(`/scan-jobs/${jobId}`);
+      refreshJobs();
+      if(job.status==='completed'){
+        clearInterval(activePolls[jobId]); delete activePolls[jobId];
+        toast(`✅ ${job.scan_type} done — ${job.results} result(s)`);
+        await viewJob(jobId, job.scan_type);
+      }else if(job.status==='failed'){
+        clearInterval(activePolls[jobId]); delete activePolls[jobId];
+        toast(`❌ ${job.scan_type} failed: ${job.error}`,'err');
+      }else if(tries>80){clearInterval(activePolls[jobId]);delete activePolls[jobId];}
+    }catch{clearInterval(activePolls[jobId]);delete activePolls[jobId];}
+  },2500);
+}
+
+// ── View job result — shows INLINE immediately ─────────────────────
+async function viewJob(jobId, scanType) {
+  try {
+    const res = await api(`/scan-jobs/${jobId}/results`);
+    const type = scanType || res.scan_type;
+    const results = res.results || [];
+
+    let html = `<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+      ${badge(type)} <span style="font-size:12px;color:var(--muted)">${results.length} result(s) — job ${jobId.slice(0,8)}…</span>
+    </div>`;
+
+    if (!results.length) {
+      html += '<div class="empty">No results yet</div>';
+    } else {
+      for (const r of results) {
+        html += renderResult(type, r);
+      }
+    }
+
+    // Show inline on scanner page
+    if (document.getElementById('page-scanner').classList.contains('active')) {
+      showInlineResult(type + ' results', html);
+    } else {
+      // Show in modal on other pages
+      openModal(`${type} — scan results`, html);
+    }
+  } catch(e) {
+    toast(e.message, 'err');
+  }
+}
+
+// ── Result renderers ───────────────────────────────────────────────
+function renderResult(type, r) {
+  let body = '';
+  try {
+    if (type==='dns')          body = renderDNS(r);
+    else if (type==='whois')   body = renderWhois(r);
+    else if (type==='ssl')     body = renderSSL(r);
+    else if (type==='headers') body = renderHeaders(r);
+    else if (type==='waf')     body = renderWAF(r);
+    else if (type==='ip'||type==='asn'||type==='reverse_dns') body = renderIP(r);
+    else if (type==='shodan')  body = renderShodan(r);
+    else if (type==='port')    body = renderPorts(r);
+    else if (type==='tech')    body = renderTech(r);
+    else if (type==='subdomain')    body = renderSubdomains(r);
+    else if (type==='cert_trans')   body = renderCertTrans(r);
+    else if (type==='http_probe')   body = renderHTTPProbe(r);
+    else if (type==='takeover')     body = renderTakeover(r);
+    else if (type==='gau')          body = renderGAU(r);
+    else if (type==='virustotal')   body = renderVirusTotal(r);
+    else if (type==='urlscan')      body = renderURLScan(r);
+    else if (type==='cors')         body = renderCORS(r);
+    else if (type==='s3')           body = renderS3(r);
+    else if (type==='js_scan')      body = renderJS(r);
+    else if (type==='dir_brute')    body = renderDir(r);
+    else if (type==='xss')          body = renderVulnScan(r);
+    else if (type==='ssrf')         body = renderVulnScan(r);
+    else if (type==='crlf')         body = renderVulnScan(r);
+    else body = `<pre>${h(JSON.stringify(r, null, 2))}</pre>`;
+  } catch(e) {
+    body = `<pre>${h(JSON.stringify(r, null, 2))}</pre>`;
+  }
+  return body;
+}
+
+// ── Individual renderers ───────────────────────────────────────────
+function renderDNS(r){
+  const recs=r.records||{};
+  return `<div class="kv" style="margin-bottom:10px">
+    <span class="k">Domain</span><span class="v"><strong>${h(r.domain)}</strong></span>
+    <span class="k">Total records</span><span class="v">${r.total_records}</span>
+    ${r.spf?.length?`<span class="k">SPF</span><span class="v" style="font-family:monospace;font-size:11px">${h(r.spf[0])}</span>`:''}
+    ${r.dmarc?.length?`<span class="k">DMARC</span><span class="v" style="font-family:monospace;font-size:11px">${h(r.dmarc[0])}</span>`:''}
+  </div>
+  ${Object.entries(recs).map(([t,vals])=>`
+    <div style="margin-bottom:8px"><div class="sec">${t} records</div>
+    <div class="tags">${vals.map(v=>`<span class="tag">${h(v)}</span>`).join('')}</div></div>`).join('')}`;
+}
+function renderWhois(r){
+  return `<div class="kv">
+    <span class="k">Domain</span><span class="v"><strong>${h(r.domain)}</strong></span>
+    <span class="k">Registrar</span><span class="v">${h(r.registrar||'—')}</span>
+    <span class="k">Created</span><span class="v">${h(r.creation_date||'—')}</span>
+    <span class="k">Expires</span><span class="v">${h(r.expiration_date||'—')}</span>
+    <span class="k">Updated</span><span class="v">${h(r.updated_date||'—')}</span>
+    <span class="k">Org</span><span class="v">${h(r.org||'—')}</span>
+    <span class="k">Country</span><span class="v">${h(r.country||'—')}</span>
+    <span class="k">DNSSEC</span><span class="v">${h(r.dnssec||'—')}</span>
+  </div>
+  ${r.name_servers?.length?`<div class="sec">Name servers</div><div class="tags">${r.name_servers.map(n=>`<span class="tag">${h(n)}</span>`).join('')}</div>`:''}
+  ${r.emails?.length?`<div class="sec" style="margin-top:8px">Emails</div><div class="tags">${r.emails.map(e=>`<span class="tag">${h(e)}</span>`).join('')}</div>`:''}`;
+}
+function renderSSL(r){
+  const c=r.certificate||{},conn=r.connection||{},g=r.grade||'?';
+  return `<div style="display:flex;align-items:center;gap:14px;margin-bottom:12px">
+    <div class="grade g${g}">${g}</div>
+    <div><strong>${h(r.domain)}</strong><div style="font-size:12px;color:var(--muted)">${h(conn.tls_version||'')} — ${h(conn.cipher_suite||'')}</div></div>
+  </div>
+  <div class="kv">
+    <span class="k">Subject</span><span class="v">${h(c.subject||'')}</span>
+    <span class="k">Issuer</span><span class="v">${h(c.issuer||'')}</span>
+    <span class="k">Valid from</span><span class="v">${h(c.valid_from||'')}</span>
+    <span class="k">Valid until</span><span class="v">${h(c.valid_until||'')}</span>
+    <span class="k">Days left</span><span class="v" style="color:${(c.days_until_expiry||0)<30?'var(--red)':(c.days_until_expiry||0)<90?'var(--amber)':'var(--green)'}">${c.days_until_expiry}</span>
+    <span class="k">Self-signed</span><span class="v">${c.is_self_signed?'<span style="color:var(--red)">Yes</span>':'No'}</span>
+    <span class="k">Serial</span><span class="v" style="font-family:monospace;font-size:11px">${h(c.serial_number||'')}</span>
+  </div>
+  ${c.san?.length?`<div class="sec" style="margin-top:8px">SANs (${c.san.length})</div><div class="tags">${c.san.slice(0,30).map(s=>`<span class="tag">${h(s)}</span>`).join('')}</div>`:''}
+  ${r.issues?.length?`<div style="margin-top:8px">${r.issues.map(i=>`<div class="alert alert-red" style="margin-bottom:4px">${h(i)}</div>`).join('')}</div>`:''}`;
+}
+function renderHeaders(r){
+  const g=r.grade||'?';
+  return `<div style="display:flex;align-items:center;gap:14px;margin-bottom:12px">
+    <div class="grade g${g}">${g}</div>
+    <div><strong>${h(r.domain)}</strong><div style="font-size:12px;color:var(--muted)">${r.headers_present} present, ${r.headers_missing} missing</div></div>
+  </div>
+  ${r.missing?.length?`<div class="sec">Missing headers</div>
+  ${r.missing.map(m=>`<div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid var(--border)">
+    <span style="color:var(--red)">✗</span>
+    <span style="font-weight:600;font-size:12px">${h(m.header)}</span>
+    <span class="badge b-${m.severity==='high'?'active-scan':m.severity==='medium'?'pending':'passive'}">${m.severity}</span>
+    <span style="color:var(--muted);font-size:11px">${h(m.description||'')}</span>
+  </div>`).join('')}`:''}
+  ${r.present?.length?`<div class="sec" style="margin-top:10px">Present headers</div>
+  ${r.present.map(p=>`<div style="display:flex;align-items:center;gap:8px;padding:3px 0">
+    <span style="color:var(--green)">✓</span>
+    <span style="font-weight:600;font-size:12px">${h(p.header)}</span>
+    <span style="color:var(--muted);font-size:11px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${h(p.value||'')}</span>
+  </div>`).join('')}`:''}`;
+}
+function renderWAF(r){
+  const rc=r.waf_detected?'var(--green)':'var(--muted)';
+  const perDomain=r.per_domain||[];
+  return `<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+    <div style="width:10px;height:10px;border-radius:50%;background:${rc}"></div>
+    <div><strong>${r.waf_detected?(r.waf_name||'WAF detected'):'No WAF detected'}</strong>
+    <div style="font-size:12px;color:var(--muted)">${h(r.domain)} — ${r.domains_scanned} domains scanned</div></div>
+  </div>
+  ${r.all_wafs?.length?`<div class="sec">WAFs found</div><div class="tags">${r.all_wafs.map(w=>`<span class="tag">${h(w)}</span>`).join('')}</div>`:''}
+  ${perDomain.length?`<div class="sec" style="margin-top:10px">Per-domain results</div>
+  ${perDomain.map(d=>`<div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid var(--border);font-size:12px">
+    <span style="width:8px;height:8px;border-radius:50%;background:${d.detected?'var(--green)':'var(--subtle)'}"></span>
+    <span>${h(d.domain)}</span>
+    <span class="badge b-passive">${h(d.waf||'none')}</span>
+    <span style="color:var(--muted);font-size:11px">${h(d.method||'')}</span>
+  </div>`).join('')}`:''}`;
+}
+function renderIP(r){
+  const geo=r.geolocation||{},asn=r.asn||{};
+  return `<div class="kv">
+    <span class="k">IP</span><span class="v"><strong>${h(r.ip_address||'')}</strong></span>
+    <span class="k">Country</span><span class="v">${h(geo.country||'—')} (${h(geo.country_code||'')})</span>
+    <span class="k">City</span><span class="v">${h(geo.city||'—')}, ${h(geo.region||'')}</span>
+    <span class="k">ISP</span><span class="v">${h(geo.isp||'—')}</span>
+    <span class="k">Org</span><span class="v">${h(geo.org||'—')}</span>
+    <span class="k">Lat/Lon</span><span class="v">${geo.latitude||0}, ${geo.longitude||0}</span>
+    <span class="k">ASN</span><span class="v">AS${asn.number||0} ${h(asn.name||'')}</span>
+    <span class="k">Reverse DNS</span><span class="v">${h(r.reverse_dns||'—')}</span>
+    <span class="k">Data source</span><span class="v" style="color:var(--muted)">${h(r.data_source||'')}</span>
+  </div>`;
+}
+function renderShodan(r){
+  const asn=r.asn||{},geo=r.geo||{};
+  return `<div class="kv" style="margin-bottom:12px">
+    <span class="k">Target</span><span class="v"><strong>${h(r.target)}</strong> → ${h(r.ip||'')}</span>
+    <span class="k">Source</span><span class="v">${h(r.data_source||'')}</span>
+    <span class="k">Org</span><span class="v">${h(r.org||'—')}</span>
+    <span class="k">OS</span><span class="v">${h(r.os||'—')}</span>
+    <span class="k">Country</span><span class="v">${h(geo.country||'—')}, ${h(geo.city||'')}</span>
+    <span class="k">Open ports</span><span class="v" style="color:var(--green)">${(r.open_ports||[]).join(', ')||'none'}</span>
+    <span class="k">CVEs</span><span class="v" style="color:${r.vulns?.length?'var(--red)':'var(--muted)'}">${(r.vulns||[]).join(', ')||'none'}</span>
+  </div>
+  ${asn.asn_number?`<div class="sec">ASN (BGPView)</div><div class="kv">
+    <span class="k">ASN</span><span class="v">AS${asn.asn_number} — ${h(asn.asn_name||'')}</span>
+    <span class="k">Description</span><span class="v">${h(asn.asn_description||'')}</span>
+    <span class="k">Country</span><span class="v">${h(asn.asn_country||'')}</span>
+    <span class="k">Prefix</span><span class="v">${h(asn.prefix||'')}</span>
+  </div>`:''}
+  ${r.services?.length?`<div class="sec" style="margin-top:8px">Services</div>
+  ${r.services.map(s=>`<div class="port-row"><span class="port-num">${s.port}</span><span style="font-size:12px">${h(s.service||'')}</span><span style="color:var(--muted);font-size:11px">${h((s.banner||'').slice(0,80))}</span></div>`).join('')}`:''}
+  ${r.note?`<div class="alert alert-blue" style="margin-top:8px;font-size:11px">${h(r.note)}</div>`:''}`;
+}
+function renderPorts(r){
+  const ports=r.open_ports||[];
+  return `<div class="kv" style="margin-bottom:12px">
+    <span class="k">Target</span><span class="v"><strong>${h(r.target||r.ip_address||'')}</strong> (${h(r.ip_address||'')})</span>
+    <span class="k">Private IP</span><span class="v">${r.is_private?'Yes (full scan)':'No (top-100 ports)'}</span>
+    <span class="k">Open ports</span><span class="v" style="color:var(--green)">${ports.length}</span>
+    <span class="k">Scanned</span><span class="v">${r.total_scanned} in ${r.scan_duration_ms}ms via ${h(r.scanner||'')}</span>
+  </div>
+  ${r.disclaimer?`<div class="alert alert-amber" style="margin-bottom:10px;font-size:11px">${h(r.disclaimer)}</div>`:''}
+  ${ports.length?ports.map(p=>`<div class="port-row">
+    <span class="port-num">${p.port}</span>
+    <span class="badge b-passive">${p.protocol}</span>
+    <span style="font-weight:600;font-size:12px">${h(p.service||'')}</span>
+    <span style="color:var(--muted);font-size:11px;flex:1">${h(p.version||'')}</span>
+  </div>`).join(''):'<div style="color:var(--muted);font-size:12px">No open ports found</div>'}`;
+}
+function renderTech(r){
+  const techs=r.technologies||[];
+  return `<div style="margin-bottom:8px"><strong>${h(r.domain)}</strong></div>
+  ${techs.length?`<div class="sec">Technologies (${techs.length})</div>
+  ${techs.map(t=>`<div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid var(--border)">
+    <strong style="font-size:12px">${h(t.name)}</strong>
+    <span style="color:var(--muted);font-size:11px">${h(t.category||'')}</span>
+    ${t.version?`<span class="tag">${h(t.version)}</span>`:''}
+    <span style="margin-left:auto;font-size:11px;color:var(--muted)">${t.confidence||0}%</span>
+  </div>`).join('')}`:'<div style="color:var(--muted)">No technologies detected</div>'}
+  ${Object.keys(r.headers||{}).length?`<div class="sec" style="margin-top:10px">Response headers</div><div class="kv">${Object.entries(r.headers).map(([k,v])=>`<span class="k">${h(k)}</span><span class="v">${h(v)}</span>`).join('')}</div>`:''}
+  ${Object.keys(r.meta_tags||{}).length?`<div class="sec" style="margin-top:8px">Meta tags</div><div class="kv">${Object.entries(r.meta_tags).map(([k,v])=>`<span class="k">${h(k)}</span><span class="v">${h(v)}</span>`).join('')}</div>`:''}`;
+}
+function renderSubdomains(r){
+  const subs=r.subdomains||[];
+  return `<div class="kv" style="margin-bottom:12px">
+    <span class="k">Domain</span><span class="v"><strong>${h(r.domain)}</strong></span>
+    <span class="k">Found</span><span class="v" style="color:var(--green)">${r.subdomains_found} / ${r.wordlist_size} checked</span>
+  </div>
+  ${subs.map(s=>`<div style="display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px solid var(--border)">
+    <span style="font-size:12px;font-weight:600">${h(s.hostname)}</span>
+    <div class="tags" style="margin:0">${(s.ips||[]).map(ip=>`<span class="tag">${h(ip)}</span>`).join('')}</div>
+  </div>`).join('')}`;
+}
+function renderCertTrans(r){
+  const domains=r.unique_domains||[];
+  return `<div class="kv" style="margin-bottom:12px">
+    <span class="k">Domain</span><span class="v"><strong>${h(r.domain)}</strong></span>
+    <span class="k">Certs found</span><span class="v" style="color:var(--green)">${r.certificates_found}</span>
+    <span class="k">Unique domains</span><span class="v">${domains.length}</span>
+    <span class="k">Source</span><span class="v">${h(r.source||'crt.sh')}</span>
+  </div>
+  <div class="sec">Discovered domains (${domains.length})</div>
+  <div class="tags">${domains.slice(0,60).map(d=>`<span class="tag">${h(d)}</span>`).join('')}${domains.length>60?`<span style="color:var(--muted);font-size:11px">+${domains.length-60} more</span>`:''}</div>`;
+}
+function renderHTTPProbe(r){
+  const probes=r.probes||[];
+  return `<div class="kv" style="margin-bottom:12px">
+    <span class="k">Target</span><span class="v"><strong>${h(r.target||'')}</strong></span>
+    <span class="k">Alive</span><span class="v" style="color:${r.alive?'var(--green)':'var(--red)'}">${r.alive?'Yes':'No'}</span>
+    <span class="k">HTTPS</span><span class="v" style="color:${r.https_available?'var(--green)':'var(--amber)'}">${r.https_available?'Available':'Not available'}</span>
+  </div>
+  ${probes.map(p=>`<div style="padding:8px;background:var(--bg4);border-radius:var(--r);margin-bottom:8px">
+    <div style="display:flex;align-items:center;gap:8px">
+      <span class="badge b-${p.status_code>=200&&p.status_code<400?'active':'inactive'}">${p.status_code||0}</span>
+      <span style="font-size:12px;font-weight:600">${h(p.url||'')}</span>
+      <span style="color:var(--muted);font-size:11px;margin-left:auto">${p.response_time_ms}ms</span>
+    </div>
+    ${p.title?`<div style="margin-top:4px;font-size:12px">Title: <strong>${h(p.title)}</strong></div>`:''}
+    ${p.server?`<div style="font-size:11px;color:var(--muted)">Server: ${h(p.server)}</div>`:''}
+    ${p.redirect_chain?.length>1?`<div style="font-size:11px;color:var(--muted)">Redirects: ${p.redirect_chain.map(u=>h(u)).join(' → ')}</div>`:''}
+  </div>`).join('')}`;
+}
+function renderTakeover(r){
+  return `<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+    <div style="width:10px;height:10px;border-radius:50%;background:${r.vulnerable?'var(--red)':'var(--green)'}"></div>
+    <div><strong>${r.vulnerable?'VULNERABLE to subdomain takeover!':'No takeover vulnerability found'}</strong>
+    <div style="font-size:12px;color:var(--muted)">${h(r.domain)} — HTTP ${r.http_status}</div></div>
+  </div>
+  ${r.cname_chain?.length?`<div class="sec">CNAME chain</div><div class="tags">${r.cname_chain.map(c=>`<span class="tag">${h(c)}</span>`).join('')}</div>`:''}
+  ${r.vulnerabilities?.map(v=>`<div style="padding:8px;background:#2d1515;border:1px solid var(--red);border-radius:var(--r);margin-top:8px">
+    <div style="display:flex;align-items:center;gap:8px"><strong style="color:var(--red)">${h(v.service)}</strong><span class="badge b-active-scan">${h(v.severity)}</span></div>
+    ${v.fingerprints_matched?.length?`<div style="font-size:11px;color:var(--muted);margin-top:4px">Matched: ${v.fingerprints_matched.join(', ')}</div>`:''}
+  </div>`).join('')||''}`;
+}
+function renderGAU(r){
+  const cats=r.categorized||{},src=r.sources||{};
+  return `<div class="kv" style="margin-bottom:12px">
+    <span class="k">Domain</span><span class="v"><strong>${h(r.domain)}</strong></span>
+    <span class="k">Total URLs</span><span class="v" style="color:var(--green)">${r.total_urls}</span>
+    <span class="k">With params</span><span class="v" style="color:var(--amber)">${r.with_params} (potential injection points)</span>
+    <span class="k">Wayback</span><span class="v">${src.wayback_machine||0}</span>
+    <span class="k">OTX</span><span class="v">${src.alienvault_otx||0}</span>
+    <span class="k">HackerTarget</span><span class="v">${src.hackertarget||0}</span>
+  </div>
+  ${Object.entries(cats).map(([cat,urls])=>`<div style="margin-bottom:8px">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span class="badge b-passive">${cat}</span><span style="color:var(--muted);font-size:11px">${urls.length} URLs</span></div>
+    <div class="tags">${urls.slice(0,5).map(u=>`<span class="tag" style="font-size:10px">${h(u.length>60?u.slice(0,60)+'…':u)}</span>`).join('')}</div>
+  </div>`).join('')}
+  ${r.urls_with_params?.length?`<div class="sec">URLs with parameters (top 10)</div><div class="tags">${r.urls_with_params.slice(0,10).map(u=>`<span class="tag" style="font-size:10px">${h(u.length>70?u.slice(0,70)+'…':u)}</span>`).join('')}</div>`:''}`;
+}
+function renderVirusTotal(r){
+  const vt=r.virustotal||{},otx=r.alienvault_otx||{},threat=r.threat_intel||{};
+  const rc={high:'var(--red)',medium:'var(--amber)',low:'var(--green)'}[r.risk_level]||'var(--muted)';
+  return `<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+    <div style="width:10px;height:10px;border-radius:50%;background:${rc}"></div>
+    <div><strong>${h(r.domain)}</strong> — Risk: <span style="color:${rc}">${h(r.risk_level||'unknown')}</span>
+    <div style="font-size:12px;color:var(--muted)">Threat score: ${threat.threat_score||0}/100</div></div>
+  </div>
+  <div class="kv" style="margin-bottom:12px">
+    <span class="k">VT malicious</span><span class="v" style="color:${vt.malicious?'var(--red)':'var(--green)'}">${vt.malicious||0} engines</span>
+    <span class="k">VT suspicious</span><span class="v">${vt.suspicious||0}</span>
+    <span class="k">VT harmless</span><span class="v">${vt.harmless||0}</span>
+    <span class="k">OTX pulses</span><span class="v" style="color:${otx.pulse_count?'var(--amber)':'var(--muted)'}">${otx.pulse_count||0}</span>
+    <span class="k">OTX malware</span><span class="v" style="color:${otx.malware_samples?'var(--red)':'var(--muted)'}">${otx.malware_samples||0} samples</span>
+  </div>
+  ${otx.tags?.length?`<div class="tags">${otx.tags.map(t=>`<span class="tag">${h(t)}</span>`).join('')}</div>`:''}
+  ${r.passive_dns?.length?`<div class="sec" style="margin-top:8px">Passive DNS</div>
+  ${r.passive_dns.slice(0,8).map(d=>`<div style="display:flex;gap:8px;padding:3px 0;font-size:12px;border-bottom:1px solid var(--border)">
+    <span style="font-weight:600">${h(d.hostname||d.address||'')}</span>
+    <span style="color:var(--muted)">${h(d.address||d.hostname||'')}</span>
+    <span style="color:var(--subtle);font-size:11px">${h(d.record_type||'')}</span>
+  </div>`).join('')}`:''}
+  ${!vt.available?`<div class="alert alert-blue" style="margin-top:8px;font-size:11px">${h(vt.note||'')}</div>`:''}`;
+}
+function renderURLScan(r){
+  return `<div class="kv" style="margin-bottom:12px">
+    <span class="k">Domain</span><span class="v"><strong>${h(r.domain)}</strong></span>
+    <span class="k">Scans found</span><span class="v">${r.scans_found}</span>
+    <span class="k">Malicious</span><span class="v" style="color:${r.malicious_scans?'var(--red)':'var(--green)'}">${r.malicious_scans}</span>
+    <span class="k">IPs seen</span><span class="v">${(r.ips_seen||[]).slice(0,5).join(', ')||'—'}</span>
+    <span class="k">Countries</span><span class="v">${(r.countries_seen||[]).join(', ')||'—'}</span>
+  </div>
+  ${r.recent_scans?.length?`<div class="sec">Recent scans</div>
+  ${r.recent_scans.slice(0,5).map(s=>`<div style="padding:5px 0;border-bottom:1px solid var(--border);font-size:12px">
+    <div style="display:flex;align-items:center;gap:8px">
+      <span class="badge b-${(s.status||0)>=400?'inactive':'active'}">${s.status}</span>
+      <span>${h((s.time||'').slice(0,16).replace('T',' '))}</span>
+      <span style="color:var(--muted)">${h(s.ip||'')} ${h(s.country||'')}</span>
+    </div>
+    ${s.report?`<a href="${h(s.report)}" target="_blank" style="font-size:11px;color:var(--blue)">View full report →</a>`:''}
+  </div>`).join('')}`:''}`;
+}
+function renderCORS(r){
+  const rc={critical:'var(--red)',high:'var(--red)',medium:'var(--amber)',low:'var(--green)'}[r.risk]||'var(--muted)';
+  return `<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+    <div style="width:10px;height:10px;border-radius:50%;background:${rc}"></div>
+    <div><strong>CORS Risk: <span style="color:${rc}">${h(r.risk||'low')}</span></strong>
+    <div style="font-size:12px;color:var(--muted)">${r.tests_run} tests, ${r.vuln_count} vulnerabilities</div></div>
+  </div>
+  ${r.vulnerabilities?.length?`<div class="sec">Vulnerabilities</div>
+  ${r.vulnerabilities.map(v=>`<div style="padding:8px;background:${v.severity==='critical'?'#2d1515':v.severity==='high'?'#2d1a10':'#2d2210'};border-radius:var(--r);margin-bottom:6px">
+    <div style="display:flex;gap:8px;align-items:center"><span class="badge b-active-scan">${h(v.severity)}</span><span style="font-size:12px;font-weight:600">${h(v.endpoint)}</span></div>
+    <div style="font-size:12px;color:var(--muted);margin-top:4px">${h(v.description)}</div>
+    <div class="kv" style="margin-top:4px;font-size:11px">
+      <span class="k">Origin sent</span><span class="v">${h(v.origin_sent)}</span>
+      <span class="k">ACAO response</span><span class="v" style="color:var(--red)">${h(v.acao)}</span>
+      <span class="k">Credentials</span><span class="v">${h(v.acac||'false')}</span>
+    </div>
+  </div>`).join('')}`:`<div style="color:var(--green);font-size:13px">No CORS vulnerabilities found</div>`}`;
+}
+function renderS3(r){
+  const rc={high:'var(--red)',medium:'var(--amber)',low:'var(--green)'}[r.risk]||'var(--muted)';
+  return `<div class="kv" style="margin-bottom:12px">
+    <span class="k">Domain</span><span class="v"><strong>${h(r.domain)}</strong></span>
+    <span class="k">Tested</span><span class="v">${r.buckets_tested} bucket names</span>
+    <span class="k">Found</span><span class="v" style="color:${r.buckets_found?'var(--amber)':'var(--muted)'}">${r.buckets_found}</span>
+    <span class="k">Public</span><span class="v" style="color:${r.public_buckets?.length?'var(--red)':'var(--green)'}">${r.public_buckets?.length||0}</span>
+    <span class="k">Risk</span><span class="v" style="color:${rc}">${h(r.risk)}</span>
+  </div>
+  ${r.findings?.length?`<div class="sec">Findings</div>
+  ${r.findings.map(f=>`<div style="padding:6px 8px;background:var(--bg4);border-radius:var(--r);margin-bottom:4px;font-size:12px">
+    <div style="display:flex;align-items:center;gap:8px">
+      <span class="badge b-${f.access==='public'?'active-scan':'passive'}">${h(f.access)}</span>
+      <span style="font-weight:600">${h(f.bucket)}</span>
+      <span style="color:var(--muted)">HTTP ${f.status}</span>
+    </div>
+    <div style="color:var(--muted);font-size:11px;margin-top:2px">${h(f.url)}</div>
+  </div>`).join('')}`:`<div style="color:var(--green);font-size:13px">No S3 buckets found</div>`}`;
+}
+function renderJS(r){
+  return `<div class="kv" style="margin-bottom:12px">
+    <span class="k">Domain</span><span class="v"><strong>${h(r.domain)}</strong></span>
+    <span class="k">JS files</span><span class="v">${r.js_files} found, ${r.files_scanned} scanned</span>
+    <span class="k">Secrets found</span><span class="v" style="color:${r.secrets_found?'var(--red)':'var(--green)'}">${r.secrets_found}</span>
+    <span class="k">Endpoints</span><span class="v" style="color:var(--amber)">${r.endpoints_found}</span>
+  </div>
+  ${r.all_secrets?.length?`<div class="sec">Secrets / Sensitive data</div>
+  ${r.all_secrets.map(s=>`<div style="padding:5px 8px;background:#2d1515;border-radius:var(--r);margin-bottom:3px">
+    <span class="badge b-active-scan" style="margin-right:8px">${h(s.type)}</span>
+    <span style="font-family:monospace;font-size:11px;color:var(--red)">${h(s.match)}</span>
+  </div>`).join('')}`:''}
+  ${r.all_endpoints?.length?`<div class="sec" style="margin-top:8px">Endpoints (${r.all_endpoints.length})</div>
+  <div class="tags">${r.all_endpoints.slice(0,50).map(e=>`<span class="tag">${h(e)}</span>`).join('')}</div>`:''}`;
+}
+function renderDir(r){
+  const rc={high:'var(--red)',medium:'var(--amber)',low:'var(--green)'}[r.risk]||'var(--muted)';
+  return `<div class="kv" style="margin-bottom:12px">
+    <span class="k">Domain</span><span class="v"><strong>${h(r.domain)}</strong></span>
+    <span class="k">Tested</span><span class="v">${r.paths_tested} paths</span>
+    <span class="k">Found</span><span class="v" style="color:var(--amber)">${r.paths_found}</span>
+    <span class="k">High risk</span><span class="v" style="color:var(--red)">${r.high_risk}</span>
+    <span class="k">Risk</span><span class="v" style="color:${rc}">${h(r.risk)}</span>
+  </div>
+  ${r.findings?.length?`<div class="sec">Findings</div>
+  ${r.findings.map(f=>`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px">
+    <span class="badge b-${f.status===200?'active':f.status===403?'pending':'inactive'}">${f.status}</span>
+    <span style="font-family:monospace;font-weight:600">${h(f.path)}</span>
+    <span style="color:var(--muted);flex:1">${h((f.content_type||'').split(';')[0])}</span>
+    <span style="color:var(--muted);font-size:11px">${f.size}B</span>
+    <span class="badge b-${f.severity==='high'?'active-scan':f.severity==='medium'?'pending':'passive'}">${h(f.severity)}</span>
+  </div>`).join('')}`:`<div style="color:var(--green);font-size:13px">No interesting paths found</div>`}`;
+}
+
+// ── Results page ───────────────────────────────────────────────────
+async function loadHistory(){
+  const id=document.getElementById('r-assetid').value.trim();
+  if(!id){toast('Enter an asset ID','err');return;}
+  const wrap=document.getElementById('history-wrap');
+  wrap.innerHTML='<div class="loading">Loading...</div>';
+  try{
+    const [jobs, asset] = await Promise.all([
+      api(`/assets/${id}/scans`),
+      api(`/assets/${id}`).catch(()=>({name:id,type:'',status:''}))
+    ]);
+    if(!jobs.length){wrap.innerHTML='<div class="empty">No scans found</div>';return;}
+
+    wrap.innerHTML=`
+      <div class="export-bar">
+        <span style="font-size:13px"><strong>${h(asset.name||id)}</strong> — ${jobs.length} scans</span>
+        <button class="btn btn-ghost btn-sm" onclick="exportReport('${id}')">⬇ Export JSON</button>
+        <button class="btn btn-ghost btn-sm" onclick="exportCSV('${id}')">⬇ Export CSV summary</button>
+      </div>
+      <div class="card">
+        <table><thead><tr><th>Type</th><th>Status</th><th>Results</th><th>Started</th><th>Duration</th><th></th></tr></thead><tbody>
+        ${jobs.map(j=>{
+          const dur=j.started_at&&j.ended_at?Math.round((new Date(j.ended_at)-new Date(j.started_at))/1000)+'s':'—';
+          return `<tr>
+            <td>${badge(j.scan_type)}</td>
+            <td>${badge(j.status,j.status)}</td>
+            <td style="color:${j.results?'var(--green)':'var(--muted)'}">${j.results}</td>
+            <td class="mono">${(j.started_at||'').replace('T',' ').replace('Z','').slice(0,16)}</td>
+            <td style="color:var(--muted);font-size:12px">${dur}</td>
+            <td><button class="btn btn-ghost btn-sm" onclick="viewJobModal('${j.id}','${j.scan_type}')">View results</button></td>
+          </tr>`;}).join('')}
+        </tbody></table>
+      </div>`;
+  }catch(e){wrap.innerHTML=`<div class="empty">Error: ${h(e.message)}</div>`;}
+}
+
+async function viewJobModal(jobId, scanType) {
+  try {
+    const res = await api(`/scan-jobs/${jobId}/results`);
+    const type = scanType || res.scan_type;
+    const results = res.results || [];
+    let html = `<div style="margin-bottom:12px;display:flex;align-items:center;gap:8px">
+      ${badge(type)} <span style="font-size:12px;color:var(--muted)">${results.length} result(s)</span>
+    </div>`;
+    if (!results.length) {
+      html += `<pre>${h(JSON.stringify(res, null, 2))}</pre>`;
+    } else {
+      for (const r of results) {
+        html += renderResult(type, r);
+      }
+    }
+    openModal(`${type} — full results`, html);
+  } catch(e) { toast(e.message,'err'); }
+}
+
+// ── Export ─────────────────────────────────────────────────────────
+async function exportReport(assetId) {
+  try {
+    const resp = await fetch(`${API}/assets/${assetId}/export?format=json`);
+    const blob = await resp.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `easm-report-${assetId.slice(0,8)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast('JSON exported');
+  } catch(e) { toast(e.message,'err'); }
+}
+
+async function exportCSV(assetId) {
+  try {
+    const report = await api(`/assets/${assetId}/export?format=json`);
+    const rows = [['scan_type','status','results','started_at','ended_at','job_id']];
+    for (const scan of report.scans||[]) {
+      rows.push([
+        scan.scan_type, scan.status, scan.results||0,
+        scan.started_at||'', scan.ended_at||'', scan.job_id
+      ]);
+    }
+    const csv = rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], {type:'text/csv'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `easm-summary-${assetId.slice(0,8)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast('CSV exported');
+  } catch(e) { toast(e.message,'err'); }
+}
+
+function renderVulnScan(r) {
+  const findings = r.findings || [];
+  const rc = r.vulnerable ? 'var(--red)' : 'var(--green)';
+  return `<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+    <div style="width:10px;height:10px;border-radius:50%;background:${rc}"></div>
+    <div><strong>${h(r.type?.toUpperCase()||'')} — ${r.vulnerable?'VULNERABLE':'No issues found'}</strong>
+    <div style="font-size:12px;color:var(--muted)">${h(r.domain)} — ${r.tested} tests, severity: ${h(r.severity||'none')}</div></div>
+  </div>
+  ${r.disclaimer?`<div class="alert alert-amber" style="font-size:11px;margin-bottom:8px">${h(r.disclaimer)}</div>`:''}
+  ${findings.length?`<div class="sec">Findings</div>
+  ${findings.map(f=>`<div style="padding:8px;background:#2d1515;border-radius:var(--r);margin-bottom:6px">
+    <div style="display:flex;gap:8px;align-items:center">
+      <span class="badge b-active-scan">${h(f.severity)}</span>
+      <span style="font-size:12px;font-weight:600">${h(f.type)}</span>
+    </div>
+    <div class="kv" style="margin-top:6px;font-size:11px">
+      <span class="k">URL</span><span class="v" style="word-break:break-all">${h(f.url||'')}</span>
+      <span class="k">Parameter</span><span class="v">${h(f.param||'')}</span>
+      <span class="k">Payload</span><span class="v" style="font-family:monospace;color:var(--amber)">${h(f.payload||'')}</span>
+      <span class="k">Evidence</span><span class="v">${h(f.evidence||'')}</span>
+    </div>
+  </div>`).join('')}`:`<div style="color:var(--green);font-size:13px;padding:8px 0">No vulnerabilities detected</div>`}`;
+}
+
+// ── Init ───────────────────────────────────────────────────────────
+buildScanGrid(SCANS.passiveDomain,'scan-passive-domain','passive');
+buildScanGrid(SCANS.passiveIP,'scan-passive-ip','passive');
+buildScanGrid(SCANS.active,'scan-active','active');
+buildScanGrid(SCANS.groups,'scan-groups','groups');
+checkHealth();
+loadDashboard();
+setInterval(checkHealth,30000);
+</script>
+</body>
+</html>

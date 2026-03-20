@@ -1,0 +1,134 @@
+ubuntu@ubuntu-virtual-machine:~/Desktop/dev$ echo "$ curl http://localhost:8080/assets?page=1&limit=10"
+curl -s "http://localhost:8080/assets?page=1&limit=10" | python3 -m json.tool
+
+echo ""
+echo "$ curl http://localhost:8080/assets?type=domain&page=1&limit=5"
+curl -s "http://localhost:8080/assets?type=domain&page=1&limit=5" | python3 -m json.tool
+
+echo ""
+echo "$ curl http://localhost:8080/assets?type=domain&status=active&page=2&limit=20"
+curl -s "http://localhost:8080/assets?type=domain&status=active&page=2&limit=20" | python3 -m json.tool
+$ curl http://localhost:8080/assets?page=1&limit=10
+{
+    "data": [
+        {
+            "id": "2543962f-758b-4ef7-bd4b-e9499e514493",
+            "name": "192.168..1",
+            "type": "ip",
+            "status": "active"
+        },
+        {
+            "id": "05bc8aa7-5058-47e9-b0b0-793b1cf3cfaf",
+            "name": "192.168.1.1",
+            "type": "ip",
+            "status": "active"
+        },
+        {
+            "id": "02d565d9-752d-41c3-aa6e-b344c31f5ebc",
+            "name": "192.168.1.1",
+            "type": "ip",
+            "status": "active"
+        },
+        {
+            "id": "cae86caf-6e33-49b2-a989-3fc6c303d3c2",
+            "name": "192.168.1.1",
+            "type": "ip",
+            "status": "active"
+        },
+        {
+            "id": "19959161-3f62-4572-8fe8-0198632b1b88",
+            "name": "domain1.com",
+            "type": "domain",
+            "status": "active"
+        },
+        {
+            "id": "56bca9fb-0fb0-499c-afa5-4421813998ec",
+            "name": "domain1.com",
+            "type": "domain",
+            "status": "active"
+        },
+        {
+            "id": "6a17efc3-df40-470a-af0a-92ef39e95607",
+            "name": "domain1.com",
+            "type": "domain",
+            "status": "active"
+        },
+        {
+            "id": "c7023511-2241-48c9-81e5-2f9c70cf93bf",
+            "name": "domain2.com",
+            "type": "domain",
+            "status": "active"
+        },
+        {
+            "id": "f48636dc-b871-4afa-9267-07a79318d312",
+            "name": "domain2.com",
+            "type": "domain",
+            "status": "active"
+        },
+        {
+            "id": "e3ed229f-b368-47b7-bd35-ca103cca2002",
+            "name": "domain2.com",
+            "type": "domain",
+            "status": "active"
+        }
+    ],
+    "pagination": {
+        "page": 1,
+        "limit": 10,
+        "total": 15,
+        "total_pages": 2
+    }
+}
+
+$ curl http://localhost:8080/assets?type=domain&page=1&limit=5
+{
+    "data": [
+        {
+            "id": "19959161-3f62-4572-8fe8-0198632b1b88",
+            "name": "domain1.com",
+            "type": "domain",
+            "status": "active"
+        },
+        {
+            "id": "56bca9fb-0fb0-499c-afa5-4421813998ec",
+            "name": "domain1.com",
+            "type": "domain",
+            "status": "active"
+        },
+        {
+            "id": "6a17efc3-df40-470a-af0a-92ef39e95607",
+            "name": "domain1.com",
+            "type": "domain",
+            "status": "active"
+        },
+        {
+            "id": "f48636dc-b871-4afa-9267-07a79318d312",
+            "name": "domain2.com",
+            "type": "domain",
+            "status": "active"
+        },
+        {
+            "id": "e3ed229f-b368-47b7-bd35-ca103cca2002",
+            "name": "domain2.com",
+            "type": "domain",
+            "status": "active"
+        }
+    ],
+    "pagination": {
+        "page": 1,
+        "limit": 5,
+        "total": 8,
+        "total_pages": 2
+    }
+}
+
+$ curl http://localhost:8080/assets?type=domain&status=active&page=2&limit=20
+{
+    "data": [],
+    "pagination": {
+        "page": 2,
+        "limit": 20,
+        "total": 6,
+        "total_pages": 1
+    }
+}

@@ -1,0 +1,8 @@
+title = "EASM gitleaks config"
+
+[allowlist]
+  description = "Allowlist for old commits before keys were moved to .env"
+  commits = [
+    "41b438c",
+    "fc60583"
+  ]

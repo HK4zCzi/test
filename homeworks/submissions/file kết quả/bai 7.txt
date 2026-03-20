@@ -1,0 +1,141 @@
+ubuntu@ubuntu-virtual-machine:~/Desktop/dev$ echo "$ curl http://localhost:8080/assets/search?q=domain"
+curl -s "http://localhost:8080/assets/search?q=domain" | python3 -m json.tool
+
+
+echo "$ curl http://localhost:8080/assets/search?q=.com"
+curl -s "http://localhost:8080/assets/search?q=.com" | python3 -m json.tool
+
+echo "$ curl http://localhost:8080/assets/search?q=SERVICE  [case-insensitive]"
+curl -s "http://localhost:8080/assets/search?q=SERVICE" | python3 -m json.tool
+$ curl http://localhost:8080/assets/search?q=domain
+{
+    "results": [
+        {
+            "id": "19959161-3f62-4572-8fe8-0198632b1b88",
+            "name": "domain1.com",
+            "type": "domain",
+            "status": "active"
+        },
+        {
+            "id": "c7023511-2241-48c9-81e5-2f9c70cf93bf",
+            "name": "domain2.com",
+            "type": "domain",
+            "status": "active"
+        },
+        {
+            "id": "d92d7c20-2865-4f37-aa31-f332e88f2139",
+            "name": "inactive-domain.com",
+            "type": "domain",
+            "status": "inactive"
+        },
+        {
+            "id": "56bca9fb-0fb0-499c-afa5-4421813998ec",
+            "name": "domain1.com",
+            "type": "domain",
+            "status": "active"
+        },
+        {
+            "id": "e3ed229f-b368-47b7-bd35-ca103cca2002",
+            "name": "domain2.com",
+            "type": "domain",
+            "status": "active"
+        },
+        {
+            "id": "6a17efc3-df40-470a-af0a-92ef39e95607",
+            "name": "domain1.com",
+            "type": "domain",
+            "status": "active"
+        },
+        {
+            "id": "f48636dc-b871-4afa-9267-07a79318d312",
+            "name": "domain2.com",
+            "type": "domain",
+            "status": "active"
+        }
+    ],
+    "count": 7
+}
+$ curl http://localhost:8080/assets/search?q=.com
+{
+    "results": [
+        {
+            "id": "19959161-3f62-4572-8fe8-0198632b1b88",
+            "name": "domain1.com",
+            "type": "domain",
+            "status": "active"
+        },
+        {
+            "id": "c7023511-2241-48c9-81e5-2f9c70cf93bf",
+            "name": "domain2.com",
+            "type": "domain",
+            "status": "active"
+        },
+        {
+            "id": "8a4dc852-5c5f-407e-a6e4-16cdba3cfeaf",
+            "name": "service1.com",
+            "type": "service",
+            "status": "active"
+        },
+        {
+            "id": "17ff66da-719e-442d-9ad2-6ac3737f8086",
+            "name": "inactive1.com",
+            "type": "domain",
+            "status": "inactive"
+        },
+        {
+            "id": "d92d7c20-2865-4f37-aa31-f332e88f2139",
+            "name": "inactive-domain.com",
+            "type": "domain",
+            "status": "inactive"
+        },
+        {
+            "id": "56bca9fb-0fb0-499c-afa5-4421813998ec",
+            "name": "domain1.com",
+            "type": "domain",
+            "status": "active"
+        },
+        {
+            "id": "e3ed229f-b368-47b7-bd35-ca103cca2002",
+            "name": "domain2.com",
+            "type": "domain",
+            "status": "active"
+        },
+        {
+            "id": "6a17efc3-df40-470a-af0a-92ef39e95607",
+            "name": "domain1.com",
+            "type": "domain",
+            "status": "active"
+        },
+        {
+            "id": "f48636dc-b871-4afa-9267-07a79318d312",
+            "name": "domain2.com",
+            "type": "domain",
+            "status": "active"
+        }
+    ],
+    "count": 9
+}
+$ curl http://localhost:8080/assets/search?q=SERVICE  [case-insensitive]
+{
+    "results": [
+        {
+            "id": "8a4dc852-5c5f-407e-a6e4-16cdba3cfeaf",
+            "name": "service1.com",
+            "type": "service",
+            "status": "active"
+        },
+        {
+            "id": "8403159d-0a46-4c3c-b46a-8e48f79a1cfe",
+            "name": "service.internal",
+            "type": "service",
+            "status": "active"
+        },
+        {
+            "id": "6c9a3238-6248-4fdd-b1da-cb33067e7130",
+            "name": "service.internal",
+            "type": "service",
+            "status": "active"
+        }
+    ],
+    "count": 3
+}
